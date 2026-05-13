@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Hisaab App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+        .duplicate-warning { animation: shake 0.4s ease-in-out; border: 2px solid #ef4444 !important; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-md mx-auto">
+        <!-- Header -->
+        <div class="glass p-6 mb-6 text-center">
+            <h1 class="text-2xl font-bold text-gray-800">Mera Hisaab 📝</h1>
+            <p class="text-gray-500 text-sm">Daily kharcha manage karein</p>
+            <div class="mt-4 text-3xl font-bold text-blue-600" id="totalAmount">₹0</div>
+        </div>
+
+        <!-- Input Section -->
+        <div class="glass p-6 mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Item Name</label>
+                <input type="text" id="itemName" placeholder="e.g. Petrol, Chai, Dudh" 
+                    class="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+                <p id="suggestion" class="text-red-500 text-xs mt-1 hidden font-medium">⚠️ Yeh item pehle se list mein hai!</p>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Amount (₹)</label>
+                <input type="number" id="itemAmount" placeholder="0.00" 
+                    class="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            </div>
+
+            <button onclick="addItem()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                Kharcha Add Karein
+            </button>
+        </div>
+
+        <!-- List Section -->
+        <div id="expenseList" class="space-y-3">
+            <!-- Items yahan dikhenge -->
+        </div>
+    </div>
+
+    <script>
+        let expenses = JSON.parse(localStorage.getItem('myHisaab')) || [];
+        const itemNameInput = document.getElementById('itemName');
+        const itemAmountInput = document.getElementById('itemAmount');
+        const suggestionMsg = document.getElementById('suggestion');
+
+        // Check for Duplicate while typing
+        itemNameInput.addEventListener('input', () => {
+            const val = itemNameInput.value.trim().toLowerCase();
+            const isDuplicate = expenses.some(ex => ex.name.toLowerCase() === val);
+            
+            if (isDuplicate && val !== "") {
+                suggestionMsg.classList.remove('hidden');
+                itemNameInput.classList.add('border-red-400');
+            } else {
+                suggestionMsg.classList.add('hidden');
+                itemNameInput.classList.remove('border-red-400');
+            }
+        });
+
+        function addItem() {
+            const name = itemNameInput.value.trim();
+            const amount = parseFloat(itemAmountInput.value);
+
+            if (!name || !amount) {
+                alert("Poori detail dalo bhai!");
+                return;
+            }
+
+            const newExpense = {
+                id: Date.now(),
+                name: name,
+                amount: amount,
+                date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            expenses.unshift(newExpense);
+            saveAndRender();
+            
+            // Clear inputs
+            itemNameInput.value = '';
+            itemAmountInput.value = '';
+            suggestionMsg.classList.add('hidden');
+        }
+
+        function deleteItem(id) {
+            expenses = expenses.filter(ex => ex.id !== id);
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('myHisaab', JSON.stringify(expenses));
+            render();
+        }
+
+        function render() {
+            const list = document.getElementById('expenseList');
+            const totalDisplay = document.getElementById('totalAmount');
+            let total = 0;
+
+            list.innerHTML = '';
+            expenses.forEach(ex => {
+                total += ex.amount;
+                list.innerHTML += `
+                    <div class="glass p-4 flex justify-between items-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div>
+                            <h3 class="font-bold text-gray-700">${ex.name}</h3>
+                            <span class="text-xs text-gray-400">${ex.date}</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-bold text-blue-600">₹${ex.amount}</span>
+                            <button onclick="deleteItem(${ex.id})" class="text-gray-300 hover:text-red-500 transition">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            totalDisplay.innerText = `₹${total.toFixed(2)}`;
+        }
+
+        // Initial Load
+        render();
+    </script>
+</body>
+</html>
